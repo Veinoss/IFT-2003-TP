@@ -91,6 +91,7 @@ def draw_board(
 
 ''' Généré par IA et modifé pour adapter le style d'intéraction avec la souris'''
 def main() -> None:
+<<<<<<< HEAD
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Labyrinth AI")
@@ -134,6 +135,10 @@ def main() -> None:
         clock.tick(60)
 
     pygame.quit()
+=======
+    print("Welcome to the magnificient Lab!")
+    print("Ho no, I'm lost")
+>>>>>>> bd80af2aa15aa064fe44d50efef83eb7812a2965
 
 
 if __name__ == "__main__":
