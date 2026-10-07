@@ -1,6 +1,8 @@
 from collections import deque
+from time import sleep
 
 import pygame
+import heapq
 
 
 SQUARE_SIZE = 40
@@ -50,6 +52,57 @@ def find_path(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
 
     return []
 
+def manhattan_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> int:
+    row1, column1 = cell1
+    row2, column2 = cell2
+    return abs(row1 - row2) + abs(column1 - column2)
+
+def next_move_possible(current: tuple[int, int], walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
+    row, column = current
+    moves_possible = []
+
+    neighbors = [
+        (row - 1, column),
+        (row + 1, column),
+        (row, column - 1),
+        (row, column + 1),
+    ]
+
+    for next_cell in neighbors:
+        next_row, next_col = next_cell
+        is_in_bounds = 0 <= next_row < ROWS and 0 <= next_col < COLUMNS
+
+        if is_in_bounds and next_cell not in walls:
+            moves_possible.append(next_cell)
+
+    return moves_possible
+
+""" 
+    Fonction fait à la main. Elle utilise la distance de Manhattan pour calculer la priorité des cellules. 
+    Va rester à la modifier quand on aura fait les teleporteurs.
+"""
+def algo_1(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
+    priority_queue = []
+    heapq.heappush(priority_queue, (manhattan_distance(START, EXIT), START))
+    previous = {START: None}
+
+    while priority_queue:
+        _, current = heapq.heappop(priority_queue)
+
+        if current == EXIT:
+            path = []
+            while current is not None:
+                path.append(current)
+                current = previous[current]
+            return list(reversed(path))
+
+        for next_cell in next_move_possible(current, walls):
+            if next_cell not in previous:
+                previous[next_cell] = current
+                priority = manhattan_distance(next_cell, EXIT)
+                heapq.heappush(priority_queue, (priority, next_cell))
+
+    return []
 
 ''' Généré par IA'''
 def square_from_mouse(position: tuple[int, int]) -> tuple[int, int]:
@@ -107,7 +160,7 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    path = find_path(walls)
+                    path = algo_1(walls)
                     player = path[-1] if path else START
                 elif event.key == pygame.K_c:
                     walls.clear()
