@@ -3,6 +3,7 @@ from time import sleep
 
 import pygame
 import heapq
+import random
 
 
 SQUARE_SIZE = 40
@@ -110,7 +111,6 @@ def square_from_mouse(position: tuple[int, int]) -> tuple[int, int]:
     return y // SQUARE_SIZE, x // SQUARE_SIZE
 
 
-''' Généré par IA'''
 def draw_board(
     screen: pygame.Surface,
     walls: set[tuple[int, int]],
@@ -154,6 +154,14 @@ def main() -> None:
     player = START
     running = True
 
+    portal: tuple[int, int] = (random.randint(0, ROWS - 1), random.randint(0, COLUMNS - 1))
+    if portal[0] == START[0] and portal[1] == START[1]:
+        portal = (portal[0]+1, (portal[1] + 1))
+
+    portal2: tuple[int, int] = (random.randint(0, ROWS - 1), random.randint(0, COLUMNS - 1))
+    if portal[0] == START[0] and portal[1] == START[1]:
+        portal = (portal[0]+1, (portal[1] + 1))
+    
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -170,7 +178,7 @@ def main() -> None:
                 buttons = pygame.mouse.get_pressed()
                 if buttons[0]:
                     cell = square_from_mouse(event.pos)
-                    if cell not in (START, EXIT):
+                    if cell not in (START, EXIT, portal, portal2):
                         if cell not in walls:
                             walls. add(cell)
                 elif buttons[2]:
@@ -183,6 +191,8 @@ def main() -> None:
 
         screen.fill(WHITE)
         draw_board(screen, walls, path, player)
+        pygame.draw.rect(screen, pygame.Color("purple"), (portal[1] * SQUARE_SIZE, portal[0] * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+        pygame.draw.rect(screen, pygame.Color("indigo"), (portal2[1] * SQUARE_SIZE, portal2[0] * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
         pygame.display.flip()
         clock.tick(60)
 
