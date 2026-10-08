@@ -1,4 +1,3 @@
-from collections import deque
 import heapq
 import pygame
 
@@ -7,9 +6,9 @@ import level_2
 import level_3
 import level_4
 
-SQUARE_SIZE = 40
-ROWS = 12
-COLUMNS = 16
+SQUARE_SIZE = 30
+ROWS = 40
+COLUMNS = 68
 GRID_WIDTH = COLUMNS * SQUARE_SIZE
 GRID_HEIGHT = ROWS * SQUARE_SIZE
 TOOLBAR_HEIGHT = 100
@@ -24,6 +23,8 @@ START_COLOR = pygame.Color("green")
 EXIT_COLOR = pygame.Color("red")
 PATH_COLOR = pygame.Color("blue")
 PLAYER_COLOR = pygame.Color("blue")
+PORTAL_1_COLOR = pygame.Color(155, 45, 215)  # Violet
+PORTAL_2_COLOR = pygame.Color(245, 130, 32)  # Orange
 TOOLBAR_BG = pygame.Color(230, 235, 240)
 TOOLBAR_BORDER = pygame.Color(180, 185, 195)
 BTN_BG = pygame.Color(210, 215, 225)
@@ -45,7 +46,11 @@ def manhattan_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> int:
 
 
 #   Fait par nous
-def next_move_possible(current: tuple[int, int], walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
+def next_move_possible(
+    current: tuple[int, int],
+    walls: set[tuple[int, int]],
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+) -> list[tuple[int, int]]:
     row, column = current
     moves_possible = []
 
@@ -55,6 +60,14 @@ def next_move_possible(current: tuple[int, int], walls: set[tuple[int, int]]) ->
         (row, column - 1),
         (row, column + 1),
     ]
+
+    # Téléportation par portails si la case courante est un portail actif
+    if portals:
+        p1, p2 = portals
+        if current == p1 and p2 not in walls and p2 not in neighbors:
+            neighbors.append(p2)
+        elif current == p2 and p1 not in walls and p1 not in neighbors:
+            neighbors.append(p1)
 
     for next_cell in neighbors:
         next_row, next_col = next_cell
@@ -69,7 +82,10 @@ def next_move_possible(current: tuple[int, int], walls: set[tuple[int, int]]) ->
 
 #   Fait par nous
 #   Algorithme 1 : Recherche gloutonne (Greedy Best-First) basée sur la distance de Manhattan.
-def algo_1(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
+def algo_1(
+    walls: set[tuple[int, int]],
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+) -> list[tuple[int, int]]:
     priority_queue = []
     heapq.heappush(priority_queue, (manhattan_distance(START, EXIT), START))
     previous = {START: None}
@@ -84,7 +100,7 @@ def algo_1(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
                 current = previous[current]
             return list(reversed(path))
 
-        for next_cell in next_move_possible(current, walls):
+        for next_cell in next_move_possible(current, walls, portals):
             if next_cell not in previous:
                 previous[next_cell] = current
                 priority = manhattan_distance(next_cell, EXIT)
@@ -96,7 +112,10 @@ def algo_1(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
 
 #   Fait par nous
 #   Algorithme 2 : Espace réservé pour votre deuxième algorithme de recherche (ex: A*, BFS, Dijkstra).
-def algo_2(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
+def algo_2(
+    walls: set[tuple[int, int]],
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+) -> list[tuple[int, int]]:
     # TODO: Implémentez votre 2e algorithme ici
 
     return []
@@ -105,18 +124,20 @@ def algo_2(walls: set[tuple[int, int]]) -> list[tuple[int, int]]:
 # ==========================================
 # Définitions des 4 niveaux pré-faits
 # ==========================================
-def get_preset_levels() -> dict[int, set[tuple[int, int]]]:
-    levels = {
-        1: level_1.get_walls(),
-        2: level_2.get_walls(),
-        3: level_3.get_walls(),
-        4: level_4.get_walls(),
-    }
+def get_preset_levels() -> dict[int, dict[str, object]]:
+    modules = {1: level_1, 2: level_2, 3: level_3, 4: level_4}
+    levels = {}
 
-    # Sécurité : aucun mur sur START ni EXIT
-    for lvl in levels.values():
-        lvl.discard(START)
-        lvl.discard(EXIT)
+    for num, mod in modules.items():
+        walls = set(mod.get_walls())
+        portals = mod.get_portals() if hasattr(mod, "get_portals") else None
+        # Sécurité : aucun mur sur START ni EXIT ni les portails
+        walls.discard(START)
+        walls.discard(EXIT)
+        if portals:
+            for p in portals:
+                walls.discard(p)
+        levels[num] = {"walls": walls, "portals": portals}
 
     return levels
 
@@ -133,8 +154,11 @@ def draw_board(
     walls: set[tuple[int, int]],
     path: list[tuple[int, int]],
     player: tuple[int, int],
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
 ) -> None:
     path_cells = set(path)
+    portal_1 = portals[0] if portals else None
+    portal_2 = portals[1] if portals else None
 
     for row in range(ROWS):
         for column in range(COLUMNS):
@@ -142,6 +166,10 @@ def draw_board(
             color = GRAY if cell in walls else WHITE
             if cell in path_cells:
                 color = PATH_COLOR
+            if cell == portal_1:
+                color = PORTAL_1_COLOR
+            elif cell == portal_2:
+                color = PORTAL_2_COLOR
             if cell == START:
                 color = START_COLOR
             elif cell == EXIT:
@@ -150,6 +178,16 @@ def draw_board(
             rect = pygame.Rect(column * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
             pygame.draw.rect(screen, color, rect)
             pygame.draw.rect(screen, GRID_LINE, rect, 1)
+
+            # Effet visuel distinctif pour les portails
+            if cell == portal_1:
+                center_p = (column * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + SQUARE_SIZE // 2)
+                pygame.draw.circle(screen, WHITE, center_p, SQUARE_SIZE // 3, 2)
+                pygame.draw.circle(screen, WHITE, center_p, SQUARE_SIZE // 6)
+            elif cell == portal_2:
+                center_p = (column * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + SQUARE_SIZE // 2)
+                pygame.draw.circle(screen, WHITE, center_p, SQUARE_SIZE // 3, 2)
+                pygame.draw.circle(screen, WHITE, center_p, SQUARE_SIZE // 6)
 
     player_row, player_column = player
     center = (
@@ -247,6 +285,7 @@ def main() -> None:
     buttons = create_toolbar_buttons()
 
     walls: set[tuple[int, int]] = set()
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None
     path: list[tuple[int, int]] = []
     player = START
     selected_algo = "algo_1"
@@ -256,10 +295,19 @@ def main() -> None:
     def execute_selected_algo():
         nonlocal path, player
         if selected_algo == "algo_1":
-            path = algo_1(walls)
+            path = algo_1(walls, portals)
         else:
-            path = algo_2(walls)
+            path = algo_2(walls, portals)
         player = path[-1] if path else START
+
+    def load_level(lvl_num: int):
+        nonlocal walls, portals, path, player, selected_level
+        selected_level = lvl_num
+        lvl_data = levels[lvl_num]
+        walls = set(lvl_data["walls"])
+        portals = lvl_data["portals"]
+        path = []
+        player = START
 
     while running:
         for event in pygame.event.get():
@@ -270,6 +318,7 @@ def main() -> None:
                     execute_selected_algo()
                 elif event.key == pygame.K_c:
                     walls.clear()
+                    portals = None
                     path = []
                     player = START
                     selected_level = None
@@ -277,6 +326,14 @@ def main() -> None:
                     selected_algo = "algo_1"
                 elif event.key in (pygame.K_2, pygame.K_KP2):
                     selected_algo = "algo_2"
+                elif event.key == pygame.K_q:
+                    load_level(1)
+                elif event.key == pygame.K_w:
+                    load_level(2)
+                elif event.key == pygame.K_e:
+                    load_level(3)
+                elif event.key == pygame.K_r:
+                    load_level(4)
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Clic gauche
@@ -291,14 +348,12 @@ def main() -> None:
                                 selected_algo = "algo_2"
                             elif btn.action_id.startswith("level_"):
                                 lvl_num = int(btn.action_id.split("_")[1])
-                                selected_level = lvl_num
-                                walls = set(levels[lvl_num])
-                                path = []
-                                player = START
+                                load_level(lvl_num)
                             elif btn.action_id == "run":
                                 execute_selected_algo()
                             elif btn.action_id == "clear":
                                 walls.clear()
+                                portals = None
                                 path = []
                                 player = START
                                 selected_level = None
@@ -306,7 +361,8 @@ def main() -> None:
 
                     if not button_clicked:
                         cell = square_from_mouse(event.pos)
-                        if cell is not None and cell not in (START, EXIT):
+                        protected_cells = (START, EXIT, *(portals if portals else ()))
+                        if cell is not None and cell not in protected_cells:
                             if cell not in walls:
                                 walls.add(cell)
                             selected_level = None
@@ -323,7 +379,8 @@ def main() -> None:
                 buttons_pressed = pygame.mouse.get_pressed()
                 if buttons_pressed[0]:  # Clic gauche glissé
                     cell = square_from_mouse(event.pos)
-                    if cell is not None and cell not in (START, EXIT):
+                    protected_cells = (START, EXIT, *(portals if portals else ()))
+                    if cell is not None and cell not in protected_cells:
                         if cell not in walls:
                             walls.add(cell)
                         selected_level = None
@@ -336,7 +393,7 @@ def main() -> None:
                         player = START
 
         screen.fill(WHITE)
-        draw_board(screen, walls, path, player)
+        draw_board(screen, walls, path, player, portals)
         draw_toolbar(screen, font, font_bold, buttons, selected_algo, selected_level)
         pygame.display.flip()
         clock.tick(60)
