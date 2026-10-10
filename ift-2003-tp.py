@@ -7,12 +7,22 @@ import level_2
 import level_3
 import level_4
 
-SQUARE_SIZE = 30
 ROWS = 40
 COLUMNS = 68
+TOOLBAR_HEIGHT = 100
+MARGIN = 80
+# Est nécessaire pour connaitre les dimensions de l'écran 
+pygame.init()
+
+# La dimension des cases se fait selon la taille de l'affichage
+_info = pygame.display.Info()
+SQUARE_SIZE = max(8, min(
+    (_info.current_w - 20) // COLUMNS,
+    (_info.current_h - TOOLBAR_HEIGHT - MARGIN) // ROWS,
+))
+
 GRID_WIDTH = COLUMNS * SQUARE_SIZE
 GRID_HEIGHT = ROWS * SQUARE_SIZE
-TOOLBAR_HEIGHT = 100
 WIDTH = GRID_WIDTH
 HEIGHT = GRID_HEIGHT + TOOLBAR_HEIGHT
 
