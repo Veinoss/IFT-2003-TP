@@ -148,17 +148,64 @@ def algo_1(
 
 
 #   Fait par nous
-#   Algorithme 2 : Espace réservé pour votre deuxième algorithme de recherche (ex: A*, BFS, Dijkstra).
+#   Algorithme 2 : Dijkstra : Heurisitique qui s'adapte le mieu pour garantir le meilleur chemin avec nos portals.
 def algo_2(
     walls: set[tuple[int, int]],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
-    # TODO: Implémentez votre 2e algorithme ici
+    start_time = time.perf_counter()
+    
+    priority_queue = []    
+    heapq.heappush(priority_queue, (0, START))
+
+    previous = {START: None}
+
+    dijkstra_costs = {
+        (row, column): float("inf")
+        for row in range(ROWS)
+        for column in range(COLUMNS)
+        if (row, column) not in walls
+    }
+    dijkstra_costs[START] = 0
+
+    nodes_expanded = 0
+
+    while priority_queue:       
+        current_cost, currentCell = heapq.heappop(priority_queue)
+        nodes_expanded += 1
+
+        if currentCell == EXIT:
+            path = []
+            while currentCell is not None:
+                path.append(currentCell)
+                currentCell = previous[currentCell]
+
+            path = list(reversed(path))
+
+            exec_time_ms = (time.perf_counter() - start_time) * 1000            
+            depth = len(path) - 1
+
+            stats = {
+                "nodes_expanded": nodes_expanded,
+                "depth": depth,
+                "cost": depth,
+                "execution_time_ms": exec_time_ms,
+            }
+            return path, stats
+
+        for next_cell in next_move_possible(currentCell, walls, portals):
+            new_cost = current_cost + 1
+
+            if new_cost < dijkstra_costs[next_cell]:
+                dijkstra_costs[next_cell] = new_cost
+                previous[next_cell] = currentCell                
+                heapq.heappush(priority_queue, (new_cost, next_cell))
+
     return [], {
         "nodes_expanded": 0,
         "depth": 0,
         "cost": 0,
-        "execution_time_ms": 0.0,
+        "execution_time_ms": exec_time_ms,
     }
 
 
