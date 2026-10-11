@@ -1,4 +1,5 @@
 import heapq
+import math
 import time
 import pygame
 
@@ -61,6 +62,14 @@ def manhattan_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> int:
     row2, column2 = cell2
     return abs(row1 - row2) + abs(column1 - column2)
 
+def euclidean_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> float:
+    row1, column1 = cell1
+    row2, column2 = cell2
+
+    return math.sqrt(
+        (row1 - row2) ** 2
+        + (column1 - column2) ** 2
+    )
 
 #   Fait par nous
 def next_move_possible(
@@ -147,66 +156,80 @@ def algo_1(
 
 
 
-#   Fait par nous
-#   Algorithme 2 : Dijkstra : Heurisitique qui s'adapte le mieu pour garantir le meilleur chemin avec nos portals.
-def algo_2(
-    walls: set[tuple[int, int]],
-    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+
+# Fait par nous
+# Algorithme 2 : A* utilisant la distance euclidienne.
+def algo_AStar(walls: set[tuple[int, int]], portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
-    start_time = time.perf_counter()
     
-    priority_queue = []    
-    heapq.heappush(priority_queue, (0, START))
+    start_time = time.perf_counter()
+    priority_queue = []
+    
+    start_h = euclidean_distance(START, EXIT)
+    heapq.heappush(priority_queue, (start_h, 0, START))
 
     previous = {START: None}
-
-    dijkstra_costs = {
-        (row, column): float("inf")
-        for row in range(ROWS)
-        for column in range(COLUMNS)
-        if (row, column) not in walls
-    }
-    dijkstra_costs[START] = 0
+    square_cost = {START: 0}
 
     nodes_expanded = 0
 
-    while priority_queue:       
-        current_cost, currentCell = heapq.heappop(priority_queue)
+    while priority_queue:
+        _, current_cost, current = heapq.heappop(priority_queue)
+
+        if current_cost != square_cost.get(current, float("inf")):
+            continue
+
         nodes_expanded += 1
 
-        if currentCell == EXIT:
+        if current == EXIT:
             path = []
-            while currentCell is not None:
-                path.append(currentCell)
-                currentCell = previous[currentCell]
+            cell = current
 
-            path = list(reversed(path))
+            while cell is not None:
+                path.append(cell)
+                cell = previous[cell]
 
-            exec_time_ms = (time.perf_counter() - start_time) * 1000            
+            path.reverse()
+
+            exec_time_ms = (time.perf_counter() - start_time) * 1000
             depth = len(path) - 1
 
             stats = {
                 "nodes_expanded": nodes_expanded,
                 "depth": depth,
-                "cost": depth,
+                "cost": current_cost,
                 "execution_time_ms": exec_time_ms,
             }
+
             return path, stats
 
-        for next_cell in next_move_possible(currentCell, walls, portals):
+        for next_cell in next_move_possible(current, walls, portals):
+            # Chaque déplacement coûte actuellement 1
             new_cost = current_cost + 1
 
-            if new_cost < dijkstra_costs[next_cell]:
-                dijkstra_costs[next_cell] = new_cost
-                previous[next_cell] = currentCell                
-                heapq.heappush(priority_queue, (new_cost, next_cell))
+            old_cost = square_cost.get(next_cell, float("inf"))
 
-    return [], {
-        "nodes_expanded": 0,
+            # Garder uniquement les routes plus économiques
+            if new_cost < old_cost:
+                square_cost[next_cell] = new_cost
+                previous[next_cell] = current
+
+                # A* : f(n) = g(n) + h(n)
+                heuristic = euclidean_distance(next_cell, EXIT)
+                priority = new_cost + heuristic
+
+                heapq.heappush(priority_queue, (priority, new_cost, next_cell))
+
+    exec_time_ms = (time.perf_counter() - start_time) * 1000
+
+    stats = {
+        "nodes_expanded": nodes_expanded,
         "depth": 0,
-        "cost": 0,
+        "cost": float("inf"),
         "execution_time_ms": exec_time_ms,
     }
+
+    return [], stats
 
 
 # ==========================================
@@ -439,7 +462,7 @@ def main() -> None:
         if selected_algo == "algo_1":
             result = algo_1(walls, portals)
         else:
-            result = algo_2(walls, portals)
+            result = algo_AStar(walls, portals)
         exec_time_fallback = (time.perf_counter() - start_time) * 1000
 
         if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], list):
