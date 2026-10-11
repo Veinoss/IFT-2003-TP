@@ -7,6 +7,7 @@ import level_1
 import level_2
 import level_3
 import level_4
+import level_5
 
 ROWS = 40
 COLUMNS = 68
@@ -26,6 +27,7 @@ GRID_WIDTH = COLUMNS * SQUARE_SIZE
 GRID_HEIGHT = ROWS * SQUARE_SIZE
 WIDTH = GRID_WIDTH
 HEIGHT = GRID_HEIGHT + TOOLBAR_HEIGHT
+DEFAULT_COST = 1
 
 # Couleurs
 WHITE = pygame.Color("white")
@@ -37,6 +39,7 @@ PATH_COLOR = pygame.Color("blue")
 PLAYER_COLOR = pygame.Color("blue")
 PORTAL_1_COLOR = pygame.Color(155, 45, 215)  # Violet
 PORTAL_2_COLOR = pygame.Color(245, 130, 32)  # Orange
+HIGHCOST_TILE_COLOR = pygame.Color(150, 110, 60)  
 TOOLBAR_BG = pygame.Color(230, 235, 240)
 TOOLBAR_BORDER = pygame.Color(180, 185, 195)
 BTN_BG = pygame.Color(210, 215, 225)
@@ -104,6 +107,16 @@ def next_move_possible(
 
     return moves_possible
 
+#   Fait par nous
+def tile_move_cost(
+    cell: tuple[int, int],
+    costs: dict[tuple[int, int], int] | None = None
+    ) -> int:
+    if costs:
+        return costs.get(cell,DEFAULT_COST)
+    else:
+        return DEFAULT_COST
+
 
 
 #   Fait par nous
@@ -112,12 +125,14 @@ def next_move_possible(
 def algo_1(
     walls: set[tuple[int, int]],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+    costs: dict[tuple[int, int], int] | None = None
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
     start_time = time.perf_counter()
     priority_queue = []
     heapq.heappush(priority_queue, (manhattan_distance(START, EXIT), START))
     previous = {START: None}
     nodes_expanded = 0
+
 
     while priority_queue:
         _, current = heapq.heappop(priority_queue)
@@ -129,12 +144,14 @@ def algo_1(
                 path.append(current)
                 current = previous[current]
             path = list(reversed(path))
+            path_without_start = path[1:]
+            total_cost = sum(tile_move_cost(tile, costs) for tile in path_without_start)
             exec_time_ms = (time.perf_counter() - start_time) * 1000
             depth = len(path) - 1
             stats = {
                 "nodes_expanded": nodes_expanded,
                 "depth": depth,
-                "cost": depth,
+                "cost": total_cost,
                 "execution_time_ms": exec_time_ms,
             }
             return path, stats
@@ -159,7 +176,10 @@ def algo_1(
 
 # Fait par nous
 # Algorithme 2 : A* utilisant la distance euclidienne.
-def algo_AStar(walls: set[tuple[int, int]], portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+def algo_AStar(
+    walls: set[tuple[int, int]],
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+    costs: dict[tuple[int, int], int] | None = None
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
     
     start_time = time.perf_counter()
@@ -204,8 +224,8 @@ def algo_AStar(walls: set[tuple[int, int]], portals: tuple[tuple[int, int], tupl
             return path, stats
 
         for next_cell in next_move_possible(current, walls, portals):
-            # Chaque déplacement coûte actuellement 1
-            new_cost = current_cost + 1
+
+            new_cost = current_cost + tile_move_cost(next_cell, costs)
 
             old_cost = square_cost.get(next_cell, float("inf"))
 
@@ -236,19 +256,20 @@ def algo_AStar(walls: set[tuple[int, int]], portals: tuple[tuple[int, int], tupl
 # Définitions des 4 niveaux pré-faits
 # ==========================================
 def get_preset_levels() -> dict[int, dict[str, object]]:
-    modules = {1: level_1, 2: level_2, 3: level_3, 4: level_4}
+    modules = {1: level_1, 2: level_2, 3: level_3, 4: level_4, 5: level_5}
     levels = {}
 
     for num, mod in modules.items():
         walls = set(mod.get_walls())
         portals = mod.get_portals() if hasattr(mod, "get_portals") else None
+        costs = mod.get_costs()  if hasattr(mod, "get_costs") else {}
         # Sécurité : aucun mur sur START ni EXIT ni les portails
         walls.discard(START)
         walls.discard(EXIT)
         if portals:
             for p in portals:
                 walls.discard(p)
-        levels[num] = {"walls": walls, "portals": portals}
+        levels[num] = {"walls": walls, "portals": portals, "costs": costs}
 
     return levels
 
@@ -266,7 +287,9 @@ def draw_board(
     path: list[tuple[int, int]],
     player: tuple[int, int],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+    costs: dict[tuple[int, int], int] | None = None,
 ) -> None:
+    costs = costs or {}
     path_cells = set(path)
     portal_1 = portals[0] if portals else None
     portal_2 = portals[1] if portals else None
@@ -275,6 +298,8 @@ def draw_board(
         for column in range(COLUMNS):
             cell = (row, column)
             color = GRAY if cell in walls else WHITE
+            if cell in costs:
+                color = HIGHCOST_TILE_COLOR
             if cell in path_cells:
                 color = PATH_COLOR
             if cell == portal_1:
@@ -334,19 +359,19 @@ def create_toolbar_buttons() -> list[Button]:
     buttons = []
     # Ligne 1 : Choix algorithmes et actions
     # Algorithmes
-    buttons.append(Button(pygame.Rect(95, GRID_HEIGHT + 10, 125, 34), "Algo 1 (Greedy)", "algo_1"))
-    buttons.append(Button(pygame.Rect(228, GRID_HEIGHT + 10, 125, 34), "Algo 2 (À faire)", "algo_2"))
+    buttons.append(Button(pygame.Rect(95, GRID_HEIGHT + 10, 125, 34), "Greedy Best-First", "algo_1"))
+    buttons.append(Button(pygame.Rect(228, GRID_HEIGHT + 10, 125, 34), "A*", "algo_2"))
 
     # Actions Lancer / Effacer
-    buttons.append(Button(pygame.Rect(405, GRID_HEIGHT + 10, 105, 34), "▶ Lancer", "run", bg_color=BTN_RUN, active_color=BTN_RUN))
-    buttons.append(Button(pygame.Rect(520, GRID_HEIGHT + 10, 105, 34), "🗑 Effacer", "clear", bg_color=BTN_CLEAR, active_color=BTN_CLEAR))
+    buttons.append(Button(pygame.Rect(405, GRID_HEIGHT + 10, 105, 34), "Lancer", "run", bg_color=BTN_RUN, active_color=BTN_RUN))
+    buttons.append(Button(pygame.Rect(520, GRID_HEIGHT + 10, 105, 34), "Effacer", "clear", bg_color=BTN_CLEAR, active_color=BTN_CLEAR))
 
     # Ligne 2 : Niveaux
     btn_w = 80
     start_x = 95
     spacing = 10
-    for i in range(1, 5):
-        buttons.append(Button(pygame.Rect(start_x + (i - 1) * (btn_w + spacing), GRID_HEIGHT + 54, btn_w, 34), f"Niv. {i}", f"level_{i}"))
+    for i in range(1, 6):
+        buttons.append(Button(pygame.Rect(start_x + (i - 1) * (btn_w + spacing), GRID_HEIGHT + 54, btn_w, 34), f"Niv.{i}", f"level_{i}"))
 
     return buttons
 
@@ -368,7 +393,7 @@ def draw_toolbar(
     pygame.draw.line(screen, TOOLBAR_BORDER, (0, GRID_HEIGHT), (WIDTH, GRID_HEIGHT), 2)
 
     # Libellés
-    label_algo = font_bold.render("Algo :", True, TEXT_COLOR)
+    label_algo = font_bold.render("Algorithme :", True, TEXT_COLOR)
     screen.blit(label_algo, (15, GRID_HEIGHT + 18))
 
     label_levels = font_bold.render("Niveaux :", True, TEXT_COLOR)
@@ -434,7 +459,6 @@ def draw_toolbar(
 # Fait par IA et retrevaillé par nous
 def main() -> None:
     pygame.init()
-    pygame.font.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Labyrinth AI - IFT 2003")
     clock = pygame.time.Clock()
@@ -450,6 +474,7 @@ def main() -> None:
     walls: set[tuple[int, int]] = set()
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None
     path: list[tuple[int, int]] = []
+    costs: dict[tuple[int, int], int] = {}
     player = START
     selected_algo = "algo_1"
     selected_level: int | None = None
@@ -460,9 +485,9 @@ def main() -> None:
         nonlocal path, player, current_stats
         start_time = time.perf_counter()
         if selected_algo == "algo_1":
-            result = algo_1(walls, portals)
+            result = algo_1(walls, portals, costs)
         else:
-            result = algo_AStar(walls, portals)
+            result = algo_AStar(walls, portals, costs)
         exec_time_fallback = (time.perf_counter() - start_time) * 1000
 
         if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], list):
@@ -491,11 +516,12 @@ def main() -> None:
             print(f"• Qualité de la solution (Coût total) : {cost_str}")
 
     def load_level(lvl_num: int):
-        nonlocal walls, portals, path, player, selected_level, current_stats
+        nonlocal walls, portals, costs, path, player, selected_level, current_stats
         selected_level = lvl_num
         lvl_data = levels[lvl_num]
         walls = set(lvl_data["walls"])
         portals = lvl_data["portals"]
+        costs = dict(lvl_data["costs"])
         path = []
         player = START
         current_stats = None
@@ -510,6 +536,7 @@ def main() -> None:
                 elif event.key == pygame.K_c:
                     walls.clear()
                     portals = None
+                    costs = {}
                     path = []
                     player = START
                     selected_level = None
@@ -526,6 +553,8 @@ def main() -> None:
                     load_level(3)
                 elif event.key == pygame.K_r:
                     load_level(4)
+                elif event.key == pygame.K_t:
+                    load_level(5)
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Clic gauche
@@ -546,6 +575,7 @@ def main() -> None:
                             elif btn.action_id == "clear":
                                 walls.clear()
                                 portals = None
+                                costs = None
                                 path = []
                                 player = START
                                 selected_level = None
@@ -588,7 +618,7 @@ def main() -> None:
                         current_stats = None
 
         screen.fill(WHITE)
-        draw_board(screen, walls, path, player, portals)
+        draw_board(screen, walls, path, player, portals, costs)
         draw_toolbar(screen, font, font_bold, font_stat_label, font_stat_val, buttons, selected_algo, selected_level, current_stats)
         pygame.display.flip()
         clock.tick(60)
