@@ -121,7 +121,8 @@ def tile_move_cost(
 
 #   Fait par nous
 #   Algorithme 1 : Recherche gloutonne (Greedy Best-First) basée sur la distance de Manhattan.
-#   Pas optimisé, on ne prend pas en compte les portails s'ils sont à l'opposé.
+#   Pas optimisé, on ne prend pas en compte les portails s'ils sont à l'opposé, ni les chemins de terre.
+#
 def algo_1(
     walls: set[tuple[int, int]],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
