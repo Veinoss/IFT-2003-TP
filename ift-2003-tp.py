@@ -59,12 +59,13 @@ START = (0, 0)
 EXIT = (ROWS - 1, COLUMNS - 1)
 
 
-#   Fait par nous
+#  Fait par nous - somme des diférences absolues de chaque coordonée
 def manhattan_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> int:
     row1, column1 = cell1
     row2, column2 = cell2
     return abs(row1 - row2) + abs(column1 - column2)
 
+#  Fait par nous - distance en ligne droite entre deux points
 def euclidean_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> float:
     row1, column1 = cell1
     row2, column2 = cell2
@@ -74,7 +75,7 @@ def euclidean_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> float:
         + (column1 - column2) ** 2
     )
 
-#   Fait par nous
+#   Fait par nous - détermine les cases voisines accessibles
 def next_move_possible(
     current: tuple[int, int],
     walls: set[tuple[int, int]],
@@ -83,6 +84,7 @@ def next_move_possible(
     row, column = current
     moves_possible = []
 
+    # Les voisins sont bas, haut, gauche, droite. Pas de déplacement en diagonale
     neighbors = [
         (row - 1, column),
         (row + 1, column),
@@ -92,7 +94,9 @@ def next_move_possible(
 
     # Téléportation par portails si la case courante est un portail actif
     if portals:
+        # portals est composé de deux cases permettant la téléportation entre les deux (bidirectionnel)
         p1, p2 = portals
+        # si la case active est un portail, la case d'arrivée devient un voisin
         if current == p1 and p2 not in walls and p2 not in neighbors:
             neighbors.append(p2)
         elif current == p2 and p1 not in walls and p1 not in neighbors:
@@ -100,19 +104,23 @@ def next_move_possible(
 
     for next_cell in neighbors:
         next_row, next_col = next_cell
+
+        # Vérifie si c'est un déplacement valide
         is_in_bounds = 0 <= next_row < ROWS and 0 <= next_col < COLUMNS
 
+         # Vérifie si la case est libre
         if is_in_bounds and next_cell not in walls:
             moves_possible.append(next_cell)
 
     return moves_possible
 
-#   Fait par nous
+#   Fait par nous - calcul le cout du déplacement pour entrer dans la cellule
 def tile_move_cost(
     cell: tuple[int, int],
     costs: dict[tuple[int, int], int] | None = None
     ) -> int:
     if costs:
+        # le dictionnaire costs contient une case et un cout
         return costs.get(cell,DEFAULT_COST)
     else:
         return DEFAULT_COST
@@ -121,33 +129,45 @@ def tile_move_cost(
 
 #   Fait par nous
 #   Algorithme 1 : Recherche gloutonne (Greedy Best-First) basée sur la distance de Manhattan.
-#   Pas optimisé, on ne prend pas en compte les portails s'ils sont à l'opposé, ni les chemins de terre.
+#   Pas optimal, on ne prend pas en compte les portails s'ils sont à l'opposé, ni les chemins de terre.
 #
 def algo_1(
     walls: set[tuple[int, int]],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
     costs: dict[tuple[int, int], int] | None = None
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
+
+    # Pour le calcul du temps d'exécution
     start_time = time.perf_counter()
+
+    # File contenant la priorité d'exécution selon la distance de manathan
     priority_queue = []
     heapq.heappush(priority_queue, (manhattan_distance(START, EXIT), START))
+
+    # Mémorise le parent de chaque case
     previous = {START: None}
+    # Nombre de case développées
     nodes_expanded = 0
 
-
+    # On itère la file tant qu'il y a une case à traiter
     while priority_queue:
+        # La case courante est celle qui est la plus susceptible d'être la meilleure
         _, current = heapq.heappop(priority_queue)
         nodes_expanded += 1
 
+        # Atteinte de la case finale
         if current == EXIT:
             path = []
+            # Reconstruction du chemin
             while current is not None:
                 path.append(current)
                 current = previous[current]
             path = list(reversed(path))
             path_without_start = path[1:]
+            # Calcul du cout en faisant la somme des couts des cases parcourues
             total_cost = sum(tile_move_cost(tile, costs) for tile in path_without_start)
             exec_time_ms = (time.perf_counter() - start_time) * 1000
+            # Le nombre de déplacements
             depth = len(path) - 1
             stats = {
                 "nodes_expanded": nodes_expanded,
@@ -157,12 +177,14 @@ def algo_1(
             }
             return path, stats
 
+        # On développe les voisins (cases accessibles)
         for next_cell in next_move_possible(current, walls, portals):
             if next_cell not in previous:
                 previous[next_cell] = current
                 priority = manhattan_distance(next_cell, EXIT)
                 heapq.heappush(priority_queue, (priority, next_cell))
 
+    # Temps d'exécution
     exec_time_ms = (time.perf_counter() - start_time) * 1000
     stats = {
         "nodes_expanded": nodes_expanded,
@@ -184,19 +206,27 @@ def algo_AStar(
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
     
     start_time = time.perf_counter()
+
+    # Priorité selon le coût réel + distance euclidienne
     priority_queue = []
     
+    # Calcul de la distance en ligne droite entre la case initiale et la case finale
     start_h = euclidean_distance(START, EXIT)
     heapq.heappush(priority_queue, (start_h, 0, START))
 
+    # Contient le parent de la case du meilleur chemin connu
     previous = {START: None}
+    # Contient le meilleur coût réel pour ce rendre à cette case
     square_cost = {START: 0}
 
     nodes_expanded = 0
 
+    # On itère tant qu'il y a des cases à traiter
     while priority_queue:
+        # La case courante est celle qui est la plus susceptible d'être la meilleure
         _, current_cost, current = heapq.heappop(priority_queue)
 
+        # Si le cout ne correpond pas au meilleur cout pour ce rendre à cette case, on ignore la case
         if current_cost != square_cost.get(current, float("inf")):
             continue
 
@@ -206,13 +236,15 @@ def algo_AStar(
             path = []
             cell = current
 
+            # Reconstruction du chemin
             while cell is not None:
                 path.append(cell)
                 cell = previous[cell]
 
             path.reverse()
-
+            # Temps d'exécution
             exec_time_ms = (time.perf_counter() - start_time) * 1000
+            # Nombre de déplacement
             depth = len(path) - 1
 
             stats = {
@@ -224,10 +256,13 @@ def algo_AStar(
 
             return path, stats
 
+        # Exploration des voisins
         for next_cell in next_move_possible(current, walls, portals):
 
+            # Cout pour rejoindre le voisin
             new_cost = current_cost + tile_move_cost(next_cell, costs)
 
+            # Meilleur coût pour ce voisin  (pour l'instant)
             old_cost = square_cost.get(next_cell, float("inf"))
 
             # Garder uniquement les routes plus économiques
@@ -254,7 +289,7 @@ def algo_AStar(
 
 
 # ==========================================
-# Définitions des 4 niveaux pré-faits
+# Définitions des 5 niveaux pré-faits
 # ==========================================
 def get_preset_levels() -> dict[int, dict[str, object]]:
     modules = {1: level_1, 2: level_2, 3: level_3, 4: level_4, 5: level_5}
