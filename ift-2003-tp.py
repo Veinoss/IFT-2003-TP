@@ -8,10 +8,12 @@ import level_2
 import level_3
 import level_4
 import level_5
+import level_6
+import level_7
 
 ROWS = 40
 COLUMNS = 68
-TOOLBAR_HEIGHT = 100
+TOOLBAR_HEIGHT = 144
 MARGIN = 80
 # Est nécessaire pour connaitre les dimensions de l'écran 
 pygame.init()
@@ -25,7 +27,7 @@ SQUARE_SIZE = max(8, min(
 
 GRID_WIDTH = COLUMNS * SQUARE_SIZE
 GRID_HEIGHT = ROWS * SQUARE_SIZE
-WIDTH = GRID_WIDTH
+WIDTH = max(GRID_WIDTH, 1540)
 HEIGHT = GRID_HEIGHT + TOOLBAR_HEIGHT
 DEFAULT_COST = 1
 
@@ -75,7 +77,41 @@ def euclidean_distance(cell1: tuple[int, int], cell2: tuple[int, int]) -> float:
         + (column1 - column2) ** 2
     )
 
-#   Fait par nous - détermine les cases voisines accessibles
+
+
+# Fait par nous 
+def heuristic_value(
+    cell: tuple[int, int],
+    heuristic_name: str, 
+    portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
+)-> float :
+
+    # Fonction heuristique à utiliser
+    if heuristic_name == "euclidean":
+        distance = euclidean_distance
+    else:
+        distance = manhattan_distance
+
+    # Calcul de la valeur heuristique
+    direct_value = distance(cell,EXIT)
+
+    # Si aucun portail, la meilleure valeur heuristique est celle déjà calculée
+    if not portals:
+         return direct_value
+
+    # Gestion des portails
+    p1, p2 = portals
+
+    # Distance par le portail 1 ou portail 2
+    value_p1 = distance(cell, p1) + distance(p2, EXIT)
+    value_p2 = distance(cell, p2) + distance(p1, EXIT)
+
+    # Prendre la valeur minimale
+    return min(direct_value, value_p1, value_p2)
+
+
+
+# Fait par nous - détermine les cases voisines accessibles
 def next_move_possible(
     current: tuple[int, int],
     walls: set[tuple[int, int]],
@@ -128,21 +164,20 @@ def tile_move_cost(
 
 
 #   Fait par nous
-#   Algorithme 1 : Recherche gloutonne (Greedy Best-First) basée sur la distance de Manhattan.
-#   Pas optimal, on ne prend pas en compte les portails s'ils sont à l'opposé, ni les chemins de terre.
-#
+#   Algorithme 1 : Recherche gloutonne (Greedy Best-First)
 def algo_1(
     walls: set[tuple[int, int]],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
-    costs: dict[tuple[int, int], int] | None = None
+    costs: dict[tuple[int, int], int] | None = None,
+    heuristic: str = "manhattan"
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
 
     # Pour le calcul du temps d'exécution
     start_time = time.perf_counter()
 
-    # File contenant la priorité d'exécution selon la distance de manathan
+    # File contenant la priorité d'exécution
     priority_queue = []
-    heapq.heappush(priority_queue, (manhattan_distance(START, EXIT), START))
+    heapq.heappush(priority_queue, (heuristic_value(START, heuristic, portals), START))
 
     # Mémorise le parent de chaque case
     previous = {START: None}
@@ -181,7 +216,7 @@ def algo_1(
         for next_cell in next_move_possible(current, walls, portals):
             if next_cell not in previous:
                 previous[next_cell] = current
-                priority = manhattan_distance(next_cell, EXIT)
+                priority = heuristic_value(next_cell, heuristic, portals)
                 heapq.heappush(priority_queue, (priority, next_cell))
 
     # Temps d'exécution
@@ -198,21 +233,20 @@ def algo_1(
 
 
 # Fait par nous
-# Algorithme 2 : A* utilisant la distance euclidienne.
+# Algorithme 2 : A* 
 def algo_AStar(
     walls: set[tuple[int, int]],
     portals: tuple[tuple[int, int], tuple[int, int]] | None = None,
-    costs: dict[tuple[int, int], int] | None = None
+    costs: dict[tuple[int, int], int] | None = None,
+    heuristic: str = "euclidean"
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
     
     start_time = time.perf_counter()
-
-    # Priorité selon le coût réel + distance euclidienne
+     
+    # Priorité selon le coût réel 
     priority_queue = []
     
-    # Calcul de la distance en ligne droite entre la case initiale et la case finale
-    start_h = euclidean_distance(START, EXIT)
-    heapq.heappush(priority_queue, (start_h, 0, START))
+    heapq.heappush(priority_queue, (heuristic_value(START, heuristic, portals), 0, START))
 
     # Contient le parent de la case du meilleur chemin connu
     previous = {START: None}
@@ -271,8 +305,7 @@ def algo_AStar(
                 previous[next_cell] = current
 
                 # A* : f(n) = g(n) + h(n)
-                heuristic = euclidean_distance(next_cell, EXIT)
-                priority = new_cost + heuristic
+                priority = new_cost + heuristic_value(next_cell, heuristic, portals)
 
                 heapq.heappush(priority_queue, (priority, new_cost, next_cell))
 
@@ -289,10 +322,10 @@ def algo_AStar(
 
 
 # ==========================================
-# Définitions des 5 niveaux pré-faits
+# Définitions des 7 niveaux pré-faits
 # ==========================================
 def get_preset_levels() -> dict[int, dict[str, object]]:
-    modules = {1: level_1, 2: level_2, 3: level_3, 4: level_4, 5: level_5}
+    modules = {1: level_1, 2: level_2, 3: level_3, 4: level_4, 5: level_5, 6: level_6, 7: level_7}
     levels = {}
 
     for num, mod in modules.items():
@@ -334,7 +367,7 @@ def draw_board(
         for column in range(COLUMNS):
             cell = (row, column)
             color = GRAY if cell in walls else WHITE
-            if cell in costs:
+            if cell in costs and cell not in walls:
                 color = HIGHCOST_TILE_COLOR
             if cell in path_cells:
                 color = PATH_COLOR
@@ -393,21 +426,22 @@ class Button:
 # Fait par IA
 def create_toolbar_buttons() -> list[Button]:
     buttons = []
-    # Ligne 1 : Choix algorithmes et actions
-    # Algorithmes
+    # Ligne 1 : Algorithmes et actions
     buttons.append(Button(pygame.Rect(95, GRID_HEIGHT + 10, 125, 34), "Greedy Best-First", "algo_1"))
     buttons.append(Button(pygame.Rect(228, GRID_HEIGHT + 10, 125, 34), "A*", "algo_2"))
-
-    # Actions Lancer / Effacer
     buttons.append(Button(pygame.Rect(405, GRID_HEIGHT + 10, 105, 34), "Lancer", "run", bg_color=BTN_RUN, active_color=BTN_RUN))
     buttons.append(Button(pygame.Rect(520, GRID_HEIGHT + 10, 105, 34), "Effacer", "clear", bg_color=BTN_CLEAR, active_color=BTN_CLEAR))
 
-    # Ligne 2 : Niveaux
-    btn_w = 80
+    # Ligne 2 : Heuristiques
+    buttons.append(Button(pygame.Rect(95, GRID_HEIGHT + 54, 125, 34), "Manhattan", "h_manhattan"))
+    buttons.append(Button(pygame.Rect(228, GRID_HEIGHT + 54, 125, 34), "Euclidienne", "h_euclidean"))
+
+    # Ligne 3 : Niveaux
+    btn_w = 70
     start_x = 95
-    spacing = 10
-    for i in range(1, 6):
-        buttons.append(Button(pygame.Rect(start_x + (i - 1) * (btn_w + spacing), GRID_HEIGHT + 54, btn_w, 34), f"Niv.{i}", f"level_{i}"))
+    spacing = 6
+    for i in range(1, 8):
+        buttons.append(Button(pygame.Rect(start_x + (i - 1) * (btn_w + spacing), GRID_HEIGHT + 98, btn_w, 34), f"Niv.{i}", f"level_{i}"))
 
     return buttons
 
@@ -420,6 +454,7 @@ def draw_toolbar(
     font_stat_val: pygame.font.Font,
     buttons: list[Button],
     selected_algo: str,
+    selected_heuristic: str,
     selected_level: int | None,
     stats: dict[str, object] | None,
 ) -> None:
@@ -432,13 +467,18 @@ def draw_toolbar(
     label_algo = font_bold.render("Algorithme :", True, TEXT_COLOR)
     screen.blit(label_algo, (15, GRID_HEIGHT + 18))
 
+    label_h = font_bold.render("Heuristique :", True, TEXT_COLOR)
+    screen.blit(label_h, (15, GRID_HEIGHT + 62))
+
     label_levels = font_bold.render("Niveaux :", True, TEXT_COLOR)
-    screen.blit(label_levels, (15, GRID_HEIGHT + 62))
+    screen.blit(label_levels, (15, GRID_HEIGHT + 106))
 
     # Dessin des boutons
     for btn in buttons:
         is_active = False
         if btn.action_id == selected_algo:
+            is_active = True
+        elif btn.action_id == f"h_{selected_heuristic}":
             is_active = True
         elif selected_level is not None and btn.action_id == f"level_{selected_level}":
             is_active = True
@@ -482,7 +522,7 @@ def draw_toolbar(
 
     # Rendu des cartes de statistiques
     for (title, x, w), val_text, val_color in zip(cards_config, vals, colors):
-        card_rect = pygame.Rect(x, GRID_HEIGHT + 12, w, 76)
+        card_rect = pygame.Rect(x, GRID_HEIGHT + (TOOLBAR_HEIGHT - 76) // 2, w, 76)
         pygame.draw.rect(screen, STAT_CARD_BG, card_rect, border_radius=6)
         pygame.draw.rect(screen, STAT_CARD_BORDER, card_rect, width=1, border_radius=6)
 
@@ -513,6 +553,7 @@ def main() -> None:
     costs: dict[tuple[int, int], int] = {}
     player = START
     selected_algo = "algo_1"
+    selected_heuristic = "manhattan"
     selected_level: int | None = None
     current_stats: dict[str, object] | None = None
     running = True
@@ -521,9 +562,9 @@ def main() -> None:
         nonlocal path, player, current_stats
         start_time = time.perf_counter()
         if selected_algo == "algo_1":
-            result = algo_1(walls, portals, costs)
+            result = algo_1(walls, portals, costs, selected_heuristic)
         else:
-            result = algo_AStar(walls, portals, costs)
+            result = algo_AStar(walls, portals, costs, selected_heuristic)
         exec_time_fallback = (time.perf_counter() - start_time) * 1000
 
         if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], list):
@@ -543,7 +584,7 @@ def main() -> None:
         # Affichage synthétique des métriques dans la console
         if current_stats:
             algo_name = "Algo 1 (Greedy Best-First)" if selected_algo == "algo_1" else "Algo 2"
-            print(f"\n--- Statistiques : {algo_name} ---")
+            print(f"\n--- Statistiques : {algo_name} ({selected_heuristic}) ---")
             print(f"• Nœuds développés : {current_stats.get('nodes_expanded', 0)}")
             print(f"• Profondeur de la solution : {current_stats.get('depth', 0)}")
             print(f"• Temps d'exécution : {current_stats.get('execution_time_ms', 0.0):.3f} ms")
@@ -591,6 +632,10 @@ def main() -> None:
                     load_level(4)
                 elif event.key == pygame.K_t:
                     load_level(5)
+                elif event.key == pygame.K_y:
+                    load_level(6)
+                elif event.key == pygame.K_u:
+                    load_level(7)
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Clic gauche
@@ -603,6 +648,8 @@ def main() -> None:
                                 selected_algo = "algo_1"
                             elif btn.action_id == "algo_2":
                                 selected_algo = "algo_2"
+                            elif btn.action_id.startswith("h_"):
+                                selected_heuristic = btn.action_id[2:]
                             elif btn.action_id.startswith("level_"):
                                 lvl_num = int(btn.action_id.split("_")[1])
                                 load_level(lvl_num)
@@ -655,7 +702,7 @@ def main() -> None:
 
         screen.fill(WHITE)
         draw_board(screen, walls, path, player, portals, costs)
-        draw_toolbar(screen, font, font_bold, font_stat_label, font_stat_val, buttons, selected_algo, selected_level, current_stats)
+        draw_toolbar(screen, font, font_bold, font_stat_label, font_stat_val, buttons, selected_algo, selected_heuristic, selected_level, current_stats)
         pygame.display.flip()
         clock.tick(60)
 
