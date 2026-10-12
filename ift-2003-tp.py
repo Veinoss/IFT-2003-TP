@@ -184,7 +184,7 @@ def algo_1(
     # Nombre de case développées
     nodes_expanded = 0
 
-    # On itère la file tant qu'il y a une case à traiter 
+    # On itère la file tant qu'il y a une case à traiter
     while priority_queue:
         # La case courante est celle qui est la plus susceptible d'être la meilleure
         _, current = heapq.heappop(priority_queue)
@@ -192,7 +192,7 @@ def algo_1(
 
         # Atteinte de la case finale
         if current == EXIT:
-            path = []            
+            path = []
             # Reconstruction du chemin
             while current is not None:
                 path.append(current)
@@ -219,7 +219,7 @@ def algo_1(
                 priority = heuristic_value(next_cell, heuristic, portals)
                 heapq.heappush(priority_queue, (priority, next_cell))
 
-    # Temps d'exécution 
+    # Temps d'exécution
     exec_time_ms = (time.perf_counter() - start_time) * 1000
     stats = {
         "nodes_expanded": nodes_expanded,
@@ -242,7 +242,7 @@ def algo_AStar(
 ) -> tuple[list[tuple[int, int]], dict[str, object]]:
     
     start_time = time.perf_counter()
-       
+     
     # Priorité selon le coût réel 
     priority_queue = []
     
@@ -250,7 +250,7 @@ def algo_AStar(
 
     # Contient le parent de la case du meilleur chemin connu
     previous = {START: None}
-    # Contient le meilleur coût réel pour ce rendre à cette case 
+    # Contient le meilleur coût réel pour ce rendre à cette case
     square_cost = {START: 0}
 
     nodes_expanded = 0
@@ -293,7 +293,7 @@ def algo_AStar(
         # Exploration des voisins
         for next_cell in next_move_possible(current, walls, portals):
 
-            # Cout pour rejoindre le voisin 
+            # Cout pour rejoindre le voisin
             new_cost = current_cost + tile_move_cost(next_cell, costs)
 
             # Meilleur coût pour ce voisin  (pour l'instant)
