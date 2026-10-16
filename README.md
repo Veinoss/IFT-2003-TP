@@ -101,7 +101,7 @@ Les deux algorithmes sont des techniques de **recherche heuristique**. Ils gère
 
 ## Contrôles & Utilisation
 
-Étant donné que le l'objectif du TP n'est pas la création d'un jeu intéractif, le UI a été grandement fait à l'aide intéligence artificielle. 
+Étant donné que le l'objectif du TP n'est pas la création d'un jeu intéractif, le UI a été grandement fait à l'aide de l'intelligence artificielle. 
 
 ### Actions à la Souris
 - **Placer des murs** : Clic gauche maintenu / glissé sur la grille.
@@ -156,7 +156,7 @@ Lors de chaque exécution, 4 statistiques clés sont affichées dans la barre d'
 
 | Fichier | Rôle & Responsabilité |
 | :--- | :--- |
-| `ift-2003-tp.py` | Fichier principal. Il contient le nécéssaire pour la génération de labyrinthe, les calculs d'heuristiques, ainsi que les algorithmes `algo_1` (Greedy) et `algo_AStar`. |
+| `ift-2003-tp.py` | Fichier principal. Il contient le nécessaire pour la génération de labyrinthe, les calculs d'heuristiques, ainsi que les algorithmes `algo_1` (Greedy) et `algo_AStar`. |
 | `level_1.py` | **Niveau 1** Démontre le gain obtenus pas les portails. |
 | `level_2.py` | **Niveau 2** Greedy (peut) être plus éfficace que A*. |
 | `level_3.py` | **Niveau 3** L'influence de la qualité d'information de l'heuristique. |
@@ -164,7 +164,6 @@ Lors de chaque exécution, 4 statistiques clés sont affichées dans la barre d'
 | `level_5.py` | **Niveau 5** Permet d'observer l'impact d'ajouter des cases lourdes au niveau 4 |
 | `level_6.py` | **Niveau 6** Piège pour l'algo Greedy |
 | `level_7.py` | **Niveau 7** L'impact du choix de l'heuristique|
-| `test_dijkstra.py` | Fichier de tests unitaires (`unittest`) validant le comportement de recherche de chemin sur des grilles réduites. |
 | `requirements.txt` | Liste des dépendances requises pour l'environnement Python (`pygame-ce`). |
 | `install.bat` | Script batch pour automatiser la mise à jour de `pip` et l'installation sous Windows (CMD). |
 | `install.ps1` | Script PowerShell pour automatiser l'installation des dépendances sous Windows. |
@@ -172,6 +171,4 @@ Lors de chaque exécution, 4 statistiques clés sont affichées dans la barre d'
 | `README.md` | Guide utilisateur complet et documentation technique du projet. |
 
 
-
 ---
-
