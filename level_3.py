@@ -1,4 +1,6 @@
-"""Niveau 3 : Labyrinthe Sectorisé en Chicanes (Concentric / Partitioned Maze).
+"""
+Généré par IA Générative
+Niveau 3 
 
 Dédale structuré en 4 grands secteurs sinueux avec chicanes et rétrécissements.
 Résoluble par un long cheminement direct ou par téléportation directe d'un secteur à l'autre.

@@ -1,4 +1,6 @@
-"""Niveau 6 : Pièges à Glouton et Faux Raccourci (Deceptive Traps).
+"""
+Généré par IA Générative
+Niveau 6 
 
 Niveau conçu pour tromper l'heuristique :
 - Deux grandes « coupes » en U, ouvertes vers le départ et fermées du côté de la

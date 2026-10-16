@@ -1,4 +1,6 @@
-"""Niveau 5 : Grand Dédale à Terrains Variés (Weighted Intricate Labyrinth).
+"""
+Généré par IA Générative
+Niveau 5 
 
 Labyrinthe haute densité avec chemins sinueux, impasses complexes et multiples carrefours.
 Résoluble par parcours complet ou via les portails positionnés aux carrefours clés.

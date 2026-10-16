@@ -1,4 +1,6 @@
-"""Niveau 7 : Marais, Rivière et Gué (Weighted Terrain Trade-offs).
+"""
+Généré par IA Générative
+Niveau 7 
 
 Niveau pondéré où trois stratégies se font concurrence :
 - Traverser le marais en ligne droite : court en nombre de pas, mais chaque
