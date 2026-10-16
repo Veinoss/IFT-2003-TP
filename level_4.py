@@ -1,5 +1,6 @@
-"""Niveau 4 : Grand Dédale Complexe (High-Density Intricate Labyrinth).
-
+"""
+Généré par IA Générative
+Niveau 4
 Labyrinthe haute densité avec chemins sinueux, impasses complexes et multiples carrefours.
 Résoluble par parcours complet ou via les portails positionnés aux carrefours clés.
 """

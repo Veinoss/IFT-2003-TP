@@ -1,4 +1,6 @@
-"""Niveau 2 : Citadelle des Salles et Couloirs (Rooms and Corridors).
+"""
+Généré par IA Générative
+Niveau 2 
 
 Structure de donjon avec de multiples salles interconnectées par des galeries sinueuses.
 Résoluble par chemin direct ou via la téléportation entre les deux salles fortifiées.

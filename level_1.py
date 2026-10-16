@@ -1,4 +1,6 @@
-"""Niveau 1 : Dédale classique arborescent (Branching DFS Labyrinth).
+"""
+Généré par IA Générative
+Niveau 1 : Dédale classique arborescent .
 
 Labyrinthe réaliste complet avec multiples bifurcations, boucles et impasses.
 Résoluble par chemin direct ou via la paire de portails servant de raccourci.

@@ -137,7 +137,7 @@ Lors de chaque exécution, 4 statistiques clés sont affichées dans la barre d'
 3. **Temps d'exécution** : Durée de calcul de la solution en millisecondes (en `ms`).
 4. **Coût total (Qualité)** : Somme des coûts des cases traversées. Permet de vérifier l'optimalité de la solution. Sur les niveaux pondérés, il peut différer de la profondeur.
 
-### Résultats de référence
+### Résultats de référence - variable selon l'environnement d'exécution
 
 | Niveau | Coût optimal | A\* — nœuds (Manh. / Eucl.) | Greedy — coût (Manh. / Eucl.) | Greedy — nœuds (Manh. / Eucl.) |
 | :---: | :---: | :---: | :---: | :---: |
@@ -149,35 +149,6 @@ Lors de chaque exécution, 4 statistiques clés sont affichées dans la barre d'
 | 6 | 130 | 2476 / 2481 | 186 / 210 | 1938 / 1990 |
 | 7 | 106 | 902 / 1470 | 208 / 248 | 90 / 90 |
 
-A\* atteint le coût optimal sur tous les niveaux, avec les deux heuristiques ; ce coût a été vérifié par un algorithme de Dijkstra indépendant. Manhattan développe moins de nœuds que l'euclidienne, car elle est plus proche du vrai coût sur une grille à 4 directions.
-
----
-
-## Description des Niveaux Pré-faits
-
-- **Niveau 1 - Dédale arborescent** : Labyrinthe classique généré par parcours en profondeur (DFS) avec bifurcations, impasses et portails raccourcis.
-- **Niveau 2 - Citadelle des Salles & Couloirs** : Architecture de type donjon composée de 9 salles reliées par des galeries sinueuses, avec téléportation entre deux salles fortifiées.
-- **Niveau 3 - Chicanes Sectorisées** : Labyrinthe structuré en 4 grands secteurs horizontaux séparés par des cloisons et des rétrécissements.
-- **Niveau 4 - Grand Dédale Haute Densité** : Labyrinthe complexe très dense avec de multiples embranchements et carrefours.
-- **Niveau 5 - Terrains Variés & Pondérés** : Même topologie que le niveau 4, mais intégrant **8 cases de terrain lourd** (coût 4 à 10) placées sur le chemin le plus court, forçant A\* à arbitrer entre traversée coûteuse et contournement.
-- **Niveau 6 - Pièges à Glouton et Faux Raccourci** : Conçu pour tromper l'heuristique :
-  - Trois coupes en U emboîtées, ouvertes vers le départ, attirent la recherche dans des culs-de-sac.
-  - Le portail orange, tout près de la sortie, est enfermé dans une chambre sans issue : l'heuristique promet un raccourci qui n'existe pas.
-  - Greedy produit un chemin bien plus coûteux que l'optimum ; A\* reste optimal mais développe presque toute la grille.
-- **Niveau 7 - Marais, Rivière et Gué** : Niveau pondéré où plusieurs stratégies se font concurrence :
-  - un marais (coût 3) entoure une vase profonde (coût 8) placée sur la diagonale ;
-  - une route pavée (coût 1) serpente à travers le marais ;
-  - une rivière ne se franchit que par un gué (coût 9) ou par deux ponts éloignés (coût 1).
-  - Greedy traverse la vase par le portail (coût 208 pour 89 pas) ; A\* fait plus de pas mais paie deux fois moins (coût 106 pour 106 pas).
-
-### Niveaux d'exercice (6 × 6)
-
-Petits niveaux destinés à vérifier une trace à la main. Ils s'utilisent avec `trace.py` uniquement : l'interface Pygame est fixée à une grille 40 × 68.
-
-- **`level_trace_10`** : Départ `(0, 0)`, sortie `(2, 5)`, une case lourde `(2, 1)` de coût 4. A\* (euclidienne) se résout en **10 itérations** et contourne la case lourde (coût 9, contre 10 en la traversant).
-- **`level_trace_portails`** : Départ `(0, 0)`, sortie `(5, 5)`, portails `(0, 2)` ↔ `(4, 5)`, case lourde `(1, 1)` de coût 4.
-  - A\* (euclidienne) se résout en **10 itérations** pour un coût de 8 ; il utilise le portail et contourne la case lourde.
-  - Greedy traverse la case lourde (coût 9).
 
 ---
 
@@ -185,17 +156,14 @@ Petits niveaux destinés à vérifier une trace à la main. Ils s'utilisent avec
 
 | Fichier | Rôle & Responsabilité |
 | :--- | :--- |
-| `ift-2003-tp.py` | **Point d'entrée principal**. Gère la fenêtre Pygame, la boucle d'événements, le dessin de la grille et de la toolbar, les calculs d'heuristiques, ainsi que les algorithmes `algo_1` (Greedy) et `algo_AStar`. |
-| `level_1.py` | Générateur du **Niveau 1** (labyrinthe arborescent DFS déterministe avec portails). |
-| `level_2.py` | Générateur du **Niveau 2** (salles géométriques, couloirs et téléporteurs). |
-| `level_3.py` | Générateur du **Niveau 3** (murs horizontaux et chicanes régulières). |
-| `level_4.py` | Générateur du **Niveau 4** (dédale haute densité avec carrefours stratégiques). |
-| `level_5.py` | Générateur du **Niveau 5** (dédale haute densité avec définition des cases pondérées `HEAVYCOST_TILES`). |
-| `level_6.py` | Générateur du **Niveau 6** (coupes en U, faux raccourci par portail et chicane). |
-| `level_7.py` | Générateur du **Niveau 7** (marais, vase, route pavée, rivière, gué et ponts). |
-| `level_trace_10.py` | Niveau d'exercice 6 × 6 sans portail (trace A\* en 10 itérations). |
-| `level_trace_portails.py` | Niveau d'exercice 6 × 6 avec portails (trace A\* en 10 itérations). |
-| `trace.py` | Outil en ligne de commande qui génère la **trace pas à pas** d'A\* ou de Greedy sur un niveau. |
+| `ift-2003-tp.py` | Fichier principal. Il contient le nécéssaire pour la génération de labyrinthe, les calculs d'heuristiques, ainsi que les algorithmes `algo_1` (Greedy) et `algo_AStar`. |
+| `level_1.py` | **Niveau 1** Démontre le gain obtenus pas les portails. |
+| `level_2.py` | **Niveau 2** Greedy (peut) être plus éfficace que A*. |
+| `level_3.py` | **Niveau 3** L'influence de la qualité d'information de l'heuristique. |
+| `level_4.py` | **Niveau 4** Labyrinthe standard |
+| `level_5.py` | **Niveau 5** Permet d'observer l'impact d'ajouter des cases lourdes au niveau 4 |
+| `level_6.py` | **Niveau 6** Piège pour l'algo Greedy |
+| `level_7.py` | **Niveau 7** L'impact du choix de l'heuristique|
 | `test_dijkstra.py` | Fichier de tests unitaires (`unittest`) validant le comportement de recherche de chemin sur des grilles réduites. |
 | `requirements.txt` | Liste des dépendances requises pour l'environnement Python (`pygame-ce`). |
 | `install.bat` | Script batch pour automatiser la mise à jour de `pip` et l'installation sous Windows (CMD). |
